@@ -21,7 +21,7 @@ colorDict = {
     2: "b"
 }
 
-# Serial = serial.Serial("/dev/ttyUSB0")
+Serial = serial.Serial("/dev/ttyACM0")
 
 class mainGUI:
     def __init__(self, master):
@@ -46,7 +46,7 @@ class mainGUI:
         self.timeEntry.insert(END, timeEntryDefault)
         self.timeApply = Button(self.timeFrame, text="Apply", command=self.Get_Time)
 
-        self.colorGUIS = [colorEditor(self.frame, 0, self), colorEditor(self.frame, 1, self), colorEditor(self.frame, 2, self)]
+        self.colorGUIS = [colorEditor(self.frame, 1, self), colorEditor(self.frame, 2, self), colorEditor(self.frame, 3, self)]
 
         self.statusMessage = Label(self.frame, text="Please Do Something", fg=successCol)
 
@@ -69,6 +69,7 @@ class mainGUI:
         timeString = "<1t" + "{0:0{1}x}".format(self.time, 3) + ">"
 
         print(timeString)
+        Serial.write(timeString.encode())
 
     def Get_Time(self):
         timeString = self.timeEntry.get()
@@ -126,7 +127,7 @@ class colorEditor:
 
         self.error_label = Label(self.frame, text="", fg=errorCol)
 
-        self.frame.grid(row=2, column=self.item)
+        self.frame.grid(row=2, column=self.item-1)
 
         self.header.grid(row=0, column=1)
 
@@ -154,11 +155,14 @@ class colorEditor:
         gint = 0
         bint = 0
 
+        # Try and convert the values to ints
         try:
             rint = int(r)
             gint = int(g)
             bint = int(b)
             self.error_label['text'] = ":)"
+
+        # If its not an int its bad
         except ValueError:
             self.error_label['text'] = "BAD INPUT"
             return
@@ -181,10 +185,11 @@ class colorEditor:
 
     def Send_Data(self, color):
         #Serial Stuff in here
+        # Serial command syntax
+        # (value) is in hex, 2 chars for a color, 3 for a time
         # 1(colorNum)(color)(value)
         # 1(time)(value)
 
-        # hexValue = hex(self.color[color]).rstrip("L").lstrip("0x") or "0"
         serialData = "1" + str(self.item) + colorDict[color] + "{0:0{1}x}".format(self.color[color], 2)
         # print(serialData)
 
@@ -193,9 +198,9 @@ class colorEditor:
 
         print(serialString)
 
-        return 0
-        # Serial.write(serialString.encode())
+        Serial.write(serialString.encode())
 
+        return 0
 
 
 root = Tk()
