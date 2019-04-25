@@ -36,8 +36,8 @@ class mainGUI:
 
         self.controlFrame = Frame(self.frame, highlightbackground=borderCol, highlightcolor=borderCol, highlightthickness=1)
         self.controlLabel = Label(self.controlFrame, text="LED Control  ")
-        self.startButton = Button(self.controlFrame, text="Start", command=lambda: self.Start_Stop(0))
-        self.stopButton = Button(self.controlFrame, text="Stop", command=lambda: self.Start_Stop(1))
+        self.startButton = Button(self.controlFrame, text="Start", command=lambda: self.Start_Stop(1))
+        self.stopButton = Button(self.controlFrame, text="Stop", command=lambda: self.Start_Stop(0))
 
         self.timeFrame = Frame(self.frame)
 
@@ -83,12 +83,13 @@ class mainGUI:
     def Start_Stop(self, action):
         actionString = ""
         if(action == 0):
-            actionString = "1ss"
+            actionString = "1s0"
         else:
-            actionString = "1st"
+            actionString = "1s1"
 
         sendString = "<" + actionString + ">"
 
+        Serial.write(sendString.encode());
         print(sendString)
 #         Send The String as serial
 
