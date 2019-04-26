@@ -1,9 +1,10 @@
 #include <Adafruit_NeoPixel.h>
+#include <Arduino.h>
 
 #define PIN 13
 #define LEDCOUNT 299
 
-int r,g,b;
+int r,g,b, LEDindex;
 
 Adafruit_NeoPixel strip(LEDCOUNT, PIN, NEO_GRB + NEO_KHZ800);
 
@@ -15,26 +16,23 @@ bool newCommand = false;
 //<1>
 
 struct colorid{
-  //char
-  int id;
+    //char
+    int id;
 
-  int r;
-  int g;
-  int b;
+    int r;
+    int g;
+    int b;
 }colorID_d = {0, 0, 0, 0};
 
 typedef struct colorid colorID;
 
 struct item{
-  colorID colors[3];
-  colorID c1;
-  colorID c2;
-  colorID c3;
-  //num
-  int id;
+    colorID colors[3];
+    //num
+    int id;
 
-  int t;
-  int active;
+    int t;
+    int active;
 }item_d = {{colorID_d, colorID_d, colorID_d}, 0, 0, 1};
 
 typedef struct item Item;
@@ -56,45 +54,46 @@ void setup() {
 void loop() {
     getCommand();
     if(newCommand == true){
-      parseCommand(receivedChars, &testItem);
+        parseCommand(receivedChars, &testItem);
     }
     
-    LEDCycle();
+    if(testItem.active = 1){
+        LEDCycle();
 
-    delay(testItem.t);
+        delay(testItem.t);
+    }
+
 }
 
 void LEDCycle(){
-//  strip.setPixelColor(LEDindex - 2, 0, 0, 0);
-//  strip.setPixelColor(LEDindex - 1, 0, 0, 0);
-//  strip.setPixelColor(LEDindex, 0, 0, 0);
-//  strip.setPixelColor(LEDindex + 1, 0, 0, 0);
 
-  LEDindex = LEDindex + 1;
-  
-  strip.setPixelColor(LEDindex - 1,testItem->colors[1].r, testItem->colors[1].g, testItem->colors[1].b); 
-  
-  strip.setPixelColor(LEDindex, testItem->colors[2].r, testItem->colors[2].g, testItem->colors[2].b);
+    LEDindex = LEDindex + 1;
 
-  strip.setPixelColor(LEDindex + 1, testItem->colors[3].r, testItem->colors[3].g, testItem->colors[3].b);
+    strip.setPixelColor(LEDindex - 2, 0, 0, 0);
+    
+    strip.setPixelColor(LEDindex - 1,testItem.colors[1].r, testItem.colors[1].g, testItem.colors[1].b); 
+    
+    strip.setPixelColor(LEDindex, testItem.colors[2].r, testItem.colors[2].g, testItem.colors[2].b);
+
+    strip.setPixelColor(LEDindex + 1, testItem.colors[3].r, testItem.colors[3].g, testItem.colors[3].b);
 
 
-  if(LEDindex > LEDCOUNT){
-    LEDindex = 3;
-  }
-  
-  strip.show();
+    if(LEDindex > LEDCOUNT){
+      LEDindex = 3;
+    }
+    
+    strip.show();
 }
 
 void parseCommand(char commandRaw[numChars], item * changeItem){
 
-  int id = commandRaw[0] - '0';
+    int id = commandRaw[0] - '0';
 
-  char rawValue[3];
-  char colorIndex[2];
+    char rawValue[3];
+    char colorIndex[2];
 
-  int value = 0;
-  int colorIndexValue = 0;
+    int value = 0;
+    int colorIndexValue = 0;
 
 // If the second char is not T that means we are talking about a color
     if(commandRaw[1] == 't'){
@@ -105,8 +104,8 @@ void parseCommand(char commandRaw[numChars], item * changeItem){
         rawValue[3] = '\0';
     }else if(commandRaw[1] == 's'){
       //<1s1> or <1s0>
-      rawValue[0] = commandRaw[2];
-      rawValue[1] = '\0';
+        rawValue[0] = commandRaw[2];
+        rawValue[1] = '\0';
     }else{
         //<11rFF> or <13b0F>
         colorIndex[0] = commandRaw[1];
@@ -116,7 +115,7 @@ void parseCommand(char commandRaw[numChars], item * changeItem){
         rawValue[2] = '\0';
     }
 
-  value = (int)strtol(rawValue, NULL, 16);
+    value = (int)strtol(rawValue, NULL, 16);
 
 //Switch statements to change color values, easier if they were in array.
     if(commandRaw[1] == 't'){
@@ -136,14 +135,14 @@ void parseCommand(char commandRaw[numChars], item * changeItem){
             case 'b':
                 changeItem->colors[colorIndexValue].b = value;
                 break;
-    }
+        }
     }
 
-  Serial.println(changeItem->colors[1].r);
-  Serial.println(changeItem->active);
-  Serial.println(testItem.t);
+    Serial.println(changeItem->colors[1].r);
+    Serial.println(changeItem->active);
+    Serial.println(testItem.t);
 
-  newCommand = false;
+    newCommand = false;
 }
 
 void getCommand() {
