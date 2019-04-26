@@ -1,5 +1,4 @@
 #include <Adafruit_NeoPixel.h>
-#include <Arduino.h>
 
 #define PIN 13
 #define LEDCOUNT 299
@@ -57,7 +56,7 @@ void loop() {
         parseCommand(receivedChars, &testItem);
     }
     
-    if(testItem.active = 1){
+    if(testItem.active == 1){
         LEDCycle();
 
         delay(testItem.t);
@@ -119,10 +118,15 @@ void parseCommand(char commandRaw[numChars], item * changeItem){
 
 //Switch statements to change color values, easier if they were in array.
     if(commandRaw[1] == 't'){
+
         changeItem->t = value;
+
     }else if(commandRaw[1] == 's'){
+
         changeItem->active = value;      
+
     }else{
+
         colorIndexValue = (int)strtol(colorIndex, NULL, 16);
 
         switch(commandRaw[2]){
@@ -138,9 +142,10 @@ void parseCommand(char commandRaw[numChars], item * changeItem){
         }
     }
 
-    Serial.println(changeItem->colors[1].r);
-    Serial.println(changeItem->active);
-    Serial.println(testItem.t);
+    //Debug Stuff
+   // Serial.println(changeItem->colors[1].r);
+   // Serial.println(changeItem->active);
+   // Serial.println(testItem.t);
 
     newCommand = false;
 }
@@ -148,6 +153,7 @@ void parseCommand(char commandRaw[numChars], item * changeItem){
 void getCommand() {
     static boolean recvInProgress = false;
     static byte recvIndex = 0;
+
     char startMark = '<';
     char endMark = '>';
     char recv;
