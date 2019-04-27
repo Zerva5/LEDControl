@@ -6,11 +6,13 @@ borderCol = "grey"
 errorCol = "red"
 successCol = "green"
 
-timeEntryDefault = "0"
+timeEntryDefault = "1000"
 
-rEntryDefault = "0"
-gEntryDefault = "0"
-bEntryDefault = "0"
+rEntryDefault = "255"
+gEntryDefault = "255"
+bEntryDefault = "255"
+
+lEntryDefault = "1"
 
 editorPaddingx = 10
 editorPaddingy = 5
@@ -46,7 +48,7 @@ class mainGUI:
         self.timeEntry.insert(END, timeEntryDefault)
         self.timeApply = Button(self.timeFrame, text="Apply", command=self.Get_Time)
 
-        self.colorGUIS = [colorEditor(self.frame, 1, self), colorEditor(self.frame, 2, self), colorEditor(self.frame, 3, self)]
+        self.colorGUIS = [colorEditor(self.frame, 0, self), colorEditor(self.frame, 1, self), colorEditor(self.frame, 2, self)]
 
         self.statusMessage = Label(self.frame, text="Please Do Something", fg=successCol)
 
@@ -89,7 +91,7 @@ class mainGUI:
 
         sendString = "<" + actionString + ">"
 
-        Serial.write(sendString.encode());
+        Serial.write(sendString.encode())
         print(sendString)
 #         Send The String as serial
 
@@ -123,12 +125,15 @@ class colorEditor:
 
         self.bLabel = Label(self.frame, text="Blue")
 
+        self.lLabel = Label(self.frame, text="Length")
+        self.lEntry = Entry(self.frame)
+        self.lEntry.insert(END, lEntryDefault)
 
         self.apply_button = Button(self.frame, text="Apply", command=self.Get_Data)
 
         self.error_label = Label(self.frame, text="", fg=errorCol)
 
-        self.frame.grid(row=2, column=self.item-1)
+        self.frame.grid(row=2, column=self.item)
 
         self.header.grid(row=0, column=1)
 
@@ -141,26 +146,33 @@ class colorEditor:
         self.bLabel.grid(row=3, column=0)
         self.bEntry.grid(row=3, column=1)
 
-        self.apply_button.grid(row=4, column=0)
+        self.lEntry.grid(row=4, column=1)
+        self.lLabel.grid(row=4, column=0)
 
-        self.error_label.grid(row=4, column=1)
+        self.apply_button.grid(row=6, column=0)
 
-        self.color = [0, 0, 0]
+        self.error_label.grid(row=5, column=1)
+
+        self.color = [255, 255, 255]
+        self.length = 1
 
     def Get_Data(self):
         r = self.rEntry.get()
         g = self.gEntry.get()
         b = self.bEntry.get()
+        l = self.lEntry.get()
 
         rint = 0
         gint = 0
         bint = 0
+        lint = 0
 
         # Try and convert the values to ints
         try:
             rint = int(r)
             gint = int(g)
             bint = int(b)
+            lint = int(l)
             self.error_label['text'] = ":)"
 
         # If its not an int its bad
@@ -169,6 +181,7 @@ class colorEditor:
             return
 
         newColor = [rint, gint, bint]
+        newLength = lint
 
         for index in range(0, 3):
             if(newColor[index] > 255):
@@ -176,13 +189,20 @@ class colorEditor:
             elif(newColor[index] < 0):
                 newColor[index] = 0
 
+
+        oldColor = self.color
         self.color = newColor
+        self.length = lint
+
 
         for val in range(0, 3):
-            if(self.Send_Data(val) == 0):
-                (self.parent.statusMessage.config(text="AYYY", fg=successCol))
-            else:
-                self.parent.statusMessage.config(text="SOMETHING WENT WRONG", fg=errorCol)
+            if(newColor[val] != oldColor[val]):
+                if(self.Send_Data(val) == 0):
+                    (self.parent.statusMessage.config(text="AYYY", fg=successCol))
+                else:
+                    self.parent.statusMessage.config(text="SOMETHING WENT WRONG", fg=errorCol)
+        self.Send_Data('l')
+
 
     def Send_Data(self, color):
         #Serial Stuff in here
@@ -191,7 +211,10 @@ class colorEditor:
         # 1(colorNum)(color)(value)
         # 1(time)(value)
 
-        serialData = "1" + str(self.item) + colorDict[color] + "{0:0{1}x}".format(self.color[color], 2)
+        if(color != 'l'):
+            serialData = "1" + str(self.item) + colorDict[color] + "{0:0{1}x}".format(self.color[color], 2)
+        else:
+            serialData = "1" + str(self.item) + 'l' + "{0:0{1}x}".format(self.length, 2)
         # print(serialData)
 
         serialString = "<" + serialData + ">"
