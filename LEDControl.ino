@@ -25,6 +25,8 @@ struct item {
     //num
     int colorCount;
     int t;
+    int maxt;
+    int curIndex;
 };
 
 typedef struct item Item;
@@ -32,9 +34,6 @@ typedef struct item Item;
 struct ledStrip{
 
 //    enum LEDTypes LEDType;
-    int LEDCount;
-    int pin;
-    Adafruit_NeoPixel NEO_strip;
     int active;
     int itemCount;
     Item * items;
@@ -50,17 +49,21 @@ void Strip_close(LEDStrip * oldStrip);
 void Strip_init(LEDStrip * newStrip, int itemCount);
 void Item_init(Item * newItem, int colorCount);
 void Color_init(colorID * newColor, bool randomColor);
+void LED_default(LEDStrip * strip);
 
 //All strips used in the program, need to recompile to add a new strip.
-
+const int LEDCOUNT = 299;
 const int StripCount = 1;
 LEDStrip Strips[1];
+int startIndex = 0;
+
+Adafruit_NeoPixel STRIP (LEDCOUNT, 13, NEO_GRB + NEO_KHZ800);
 
 void setup() {
-    int itemCount_d = 1;
+    int itemCount_d = 10;
     //Initialize strips
     for(int s = 0; s < StripCount; s = s + 1){
-        Strip_init(&Strips[s], itemCount_d, 13);
+        Strip_init(&Strips[s], itemCount_d);
         for(int i = 0; i < Strips[s].itemCount; i = i + 1){
             Item_init(&Strips[s].items[i], 1);
             for(int c = 0; c < Strips[s].items[i].colorCount; c = c + 1){
@@ -69,15 +72,31 @@ void setup() {
         }
     }
 
+    Strips[0].items[1].curIndex = 30;
+    Strips[0].items[0].maxt = 1;
+    Strips[0].items[1].maxt = 2;
+    Strips[0].items[2].maxt = 3;
+    Strips[0].items[3].maxt = 4;
+    Strips[0].items[4].maxt = 5;
+    
+    Strips[0].items[1].colors[0].rgb[1] = 255;
+    Strips[0].items[2].colors[0].rgb[2] = 100;
+    Strips[0].items[3].colors[0].rgb[1] = 255;
+    Strips[0].items[4].colors[0].rgb[0] = 25;
+    Strips[0].items[5].colors[0].rgb[2] = 255;
+    
+
     Serial.begin(9600);
     Serial.println("<Ready For Command>");
+
+    STRIP.begin();
 
 //    Serial.println(Strips[0].items[0].colors[0].rgb[0]);
 //    Serial.println(Strips[0].items[0].colors[0].rgb[1]);
 //    Serial.println(Strips[0].items[0].colors[0].rgb[2]);
 
 
-    LED_default(&Strips[0]);
+    LED_default(&STRIP, &Strips[0]);
 
 
 //    for(int i = 0; i < StripCount; i = i + 1){
@@ -90,16 +109,18 @@ void loop(){
   if(newCommand == true){
     parseCommand();
     newCommand = false;
-    LED_default(&Strips[0]);
+//    LED_default(&STRIP, 5);
   }
 
 //    Serial.println(Strips[0].items[0].colors[0].test);
-    delay(1000);
+    LED_default(&STRIP, &Strips[0]);
+    delay(50);
+//    Serial.println(Strips[0].items[0].t);
   
     
 }
 
-void LED_default(LEDStrip * strip){
+void LED_default(Adafruit_NeoPixel strip, LEDStrip * stripItem){
     //Need to implement custom delays
     //Make a tick function, every loop it iterates that tick for each strip and each item within the strip
     //if tick >= maxTick then run and set tick back to 0, if not add one to tick and go again
@@ -107,35 +128,54 @@ void LED_default(LEDStrip * strip){
     //Have if tick is negative, have it run LED function more than once in an interation?
     //I like comments
 //
-    int currentIndex = 0;
-    uint32_t color = strip->NEO_strip.Color(strip->items[0].colors[0].rgb[0], strip->items[0].colors[0].rgb[1], strip->items[0].colors[0].rgb[2]);
 
-//    strip->items[0].colors[0].len = 10;
-//    Serial.println(strip->items[0].colors[0].test);
 
-    strip->NEO_strip.fill(color, 0, 10);
+    STRIP.clear();
+//
+    for(int i = 0; i < stripItem->itemCount; i++){
+        int currentIndex = stripItem->items[i].curIndex;
+        for(int c = 0; c < stripItem->items[i].colorCount; c = c + 1){
 
-//      for(int c = 0; c < strip->items[0].colorCount; c = c + 1){
-//          uint32_t color = strip->NEO_strip.Color(strip->items[0].colors[c].rgb[0], strip->items[0].colors[c].rgb[1], strip->items[0].colors[c].rgb[2]);
-////          strip->NEO_strip.fill(color, currentIndex, strip->items[0].colors[c].len);
-//          
-//          currentIndex = currentIndex + strip->items[0].colors[c].len;
-//      }
+            uint32_t color = STRIP.Color(stripItem->items[i].colors[c].rgb[0], stripItem->items[i].colors[c].rgb[1], stripItem->items[i].colors[c].rgb[2]);
+            STRIP.fill(color, currentIndex, stripItem->items[i].colors[c].len);
+            
+            currentIndex = currentIndex + stripItem->items[i].colors[c].len;
     
-    strip->NEO_strip.show(); 
+            if(currentIndex > LEDCOUNT){
+                startIndex = 0;
+            }
+        }
+
+        if(stripItem->active == 1 && stripItem->items[i].t >= stripItem->items[i].maxt){
+            stripItem->items[i].curIndex++;
+            stripItem->items[i].t = 0;
+        }else{
+            stripItem->items[i].t++;
+        }
+        if(stripItem->items[i].curIndex > LEDCOUNT){
+            stripItem->items[i].curIndex = 0;
+        }
+    }
+
+    
+    STRIP.show(); 
+
+
 }
 
-void parseCommand(){
+int parseCommand(){
     //Init strings for all of the seperate command values
-    char stripStr[1];
-    char itemStr[1];
-    char colorStr[1];
-    char colorIndexStr[1];
+    char stripStr[2];
+    char itemStr[2];
+    char colorStr[2];
+    char colorIndexStr[2];
     char valueStr[4];
     
     //
     stripStr[0] = receivedChars[0];
+    stripStr[1] = '\0';
     itemStr[0] = receivedChars[1];
+    itemStr[1] = '\0';
     
     //Convert char to int
     int strip = (int)strtol(stripStr, NULL, 16);
@@ -145,55 +185,89 @@ void parseCommand(){
     if(itemStr[0] == 's'){
         //Start stop strip
         valueStr[0] = receivedChars[2];
+        valueStr[1] = '\0';
+        
         int value = (int)strtol(valueStr, NULL, 16);      
         Strips[strip].active = value;
         Serial.println(Strips[strip].active);
+        return 0;
     }else if(itemStr[0] == 'a'){
         // Add or remove items to strip
         valueStr[0] = receivedChars[2];
+        valueStr[1] = '\0';
+        
         int value = (int)strtol(valueStr, NULL, 16);
         ChangeItemCount(&Strips[strip], value);
+        return 0;
     }else{
         //Its not changina strip value so its an item change
         int item = (int)strtol(itemStr[0], NULL, 16);
         colorStr[0] = receivedChars[2];
+        colorStr[1] = '\0';
 
         if(colorStr[0] == 'a'){
             //Add or remove colors from item
             valueStr[0] = receivedChars[3];
+            valueStr[1] = '\0';
             int value = (int)strtol(valueStr, NULL, 16);
             ChangeColorCount(&Strips[strip].items[item], value);
+            return 0;
         }else if(colorStr[0] == 't'){
             //Change the time value in the strip
             valueStr[0] = receivedChars[3];
             valueStr[1] = receivedChars[4];
+            valueStr[2] = receivedChars[5];
+            valueStr[3] = '\0';
 
             int value = (int)strtol(valueStr, NULL, 16);
 
-            Strips[strip].items[item].t = value;
+            Strips[strip].items[item].maxt = value;
+            Serial.println(value);
+            return 0;
         }else{
             //Its not changing any item values so its a color change
             int color = (int)strtol(colorStr, NULL, 16);
             colorIndexStr[0] = receivedChars[3];
+            colorIndexStr[1] = '\0';
             Serial.println("Changed Color");
 
             if(colorIndexStr[0] == 'l'){
                 //Change length of color, this is only useful for some led things, not all
                 valueStr[0] = receivedChars[4];
                 valueStr[1] = receivedChars[5];
+                valueStr[2] = '\0';
 
                 int value = (int)strtol(valueStr, NULL, 16);
 
                 Strips[strip].items[item].colors[color].len = value;
+                return 0;
             }else{
                 //Not a length change, its changing the color values
                 int colorIndex = (int)strtol(colorIndexStr, NULL, 16);
                 valueStr[0] = receivedChars[4];
                 valueStr[1] = receivedChars[5];
+                valueStr[2] = '\0';
+
 
                 int value = (int)strtol(valueStr, NULL, 16);
+                Serial.println(colorIndex);
+                Serial.println(value);
+
+                int rold = Strips[strip].items[item].colors[color].rgb[0];
+                int gold = Strips[strip].items[item].colors[color].rgb[1];
+                int bold = Strips[strip].items[item].colors[color].rgb[2];
+
 
                 Strips[strip].items[item].colors[color].rgb[colorIndex] = value;
+
+                Serial.println(rold);
+                Serial.println(gold);
+                Serial.println(bold);
+
+                Serial.println(Strips[strip].items[item].colors[color].rgb[0]);
+                Serial.println(Strips[strip].items[item].colors[color].rgb[1]);
+                Serial.println(Strips[strip].items[item].colors[color].rgb[2]);
+                return 0;
             }
         }
     }
@@ -291,13 +365,9 @@ void Strip_close(LEDStrip * oldStrip){
     free(oldStrip->items);
 }
 
-void Strip_init(LEDStrip * newStrip, int itemCount, int pin){
+void Strip_init(LEDStrip * newStrip, int itemCount){
 
     newStrip->active = 1;
-
-    newStrip->pin = pin;
-
-    newStrip->LEDCount = 100;
 
 //    newStrip->LEDType = default;
 
@@ -305,14 +375,6 @@ void Strip_init(LEDStrip * newStrip, int itemCount, int pin){
 
     newStrip->items = (Item *)malloc(sizeof(Item) * itemCount);
 
-    newStrip->NEO_strip = Adafruit_NeoPixel(newStrip->LEDCount, newStrip->pin, NEO_GRB + NEO_KHZ800);
-
-    newStrip->NEO_strip.begin();
-//    newStrip->NEO_strip.clear();
-    for(int i = 0; i < newStrip->LEDCount; i = i + 1){
-        newStrip->NEO_strip.setPixelColor(i, 0, 0, 0);
-    }
-    newStrip->NEO_strip.show();
 
 //    Color_init(&newStrip->items[0].colors[0], 3);
 //    newStrip->items[0].colors[0].len = 11;
@@ -329,7 +391,10 @@ void Strip_init(LEDStrip * newStrip, int itemCount, int pin){
 void Item_init(Item * newItem, int colorCount){
 //    Serial.println("HELLO");
 
-    newItem->t = 1000;
+    newItem->t = 0;
+    newItem->maxt = 10;
+
+    newItem->curIndex = 0;
 
     newItem->colorCount = colorCount;
 
@@ -341,15 +406,15 @@ void Item_init(Item * newItem, int colorCount){
 }
 
 void Color_init(colorID * newColor, bool randomColor){
-    int newLen = 1;
+    int newLen = 2;
     newColor->len = newLen;
 
     if(randomColor == true){
-        newColor->rgb[0] = 0;
+        newColor->rgb[0] = 255;
         newColor->rgb[1] = 0;
         newColor->rgb[2] = 0;
     }else{
-        newColor->rgb[0] = 0;
+        newColor->rgb[0] = 255;
         newColor->rgb[1] = 0;
         newColor->rgb[2] = 0;
     }
