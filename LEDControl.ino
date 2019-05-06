@@ -65,6 +65,8 @@ int colorCount_d = 1;
 Adafruit_NeoPixel STRIP (LEDCOUNT, 13, NEO_GRB + NEO_KHZ800);
 
 void setup() {
+    //Zero out receivedChars cause idk this might help :(
+    receivedChars[0] = '\0';
 
     //Initialize strips
     for(int s = 0; s < StripCount; s = s + 1){
@@ -301,6 +303,7 @@ int parseCommand(){
 }
 
 void getCommand() {
+    receivedChars[0] = '\0';
     static boolean recvInProgress = false;
     static byte recvIndex = 0;
     char startMark = '<';
