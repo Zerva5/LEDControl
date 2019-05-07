@@ -23,208 +23,111 @@ colorDict = {
     2: "b"
 }
 
-Serial = serial.Serial("/dev/ttyACM0")
+# Serial = serial.Serial("/dev/ttyACM0")
 
 class mainGUI:
     def __init__(self, master):
         self.master = master
 
-        self.time = 0
-
         self.frame = Frame(master)
         self.frame.pack(side=TOP)
 
-        self.header = Label(self.frame, text="Color Editor", font=("Arial", 44))
+        self.selectedItem = IntVar()
+        self.selectedItem.set(0)
+        self.selectedColor = IntVar()
+        self.selectedColor.set(0)
 
-        self.controlFrame = Frame(self.frame, highlightbackground=borderCol, highlightcolor=borderCol, highlightthickness=1)
-        self.controlLabel = Label(self.controlFrame, text="LED Control  ")
-        self.startButton = Button(self.controlFrame, text="Start", command=lambda: self.Start_Stop(1))
-        self.stopButton = Button(self.controlFrame, text="Stop", command=lambda: self.Start_Stop(0))
+        self.rInt = IntVar()
+        self.gInt = IntVar()
+        self.bInt = IntVar()
 
-        self.timeFrame = Frame(self.frame)
+        self.rInt.set(255)
+        self.gInt.set(255)
+        self.bInt.set(255)
 
-        self.timeLabel = Label(self.timeFrame, text="Time")
-        self.timeEntry = Entry(self.timeFrame)
-        self.timeEntry.insert(END, timeEntryDefault)
-        self.timeApply = Button(self.timeFrame, text="Apply", command=self.Get_Time)
+        self.colorLengthString = IntVar()
+        self.timeString = IntVar()
+        self.itemCountString = IntVar()
+        self.colorCountString = IntVar()
+        self.positionString = IntVar()
 
-        self.colorGUIS = [colorEditor(self.frame, 0, self), colorEditor(self.frame, 1, self), colorEditor(self.frame, 2, self)]
+        self.colorLengthString.set(1)
+        self.timeString.set(10)
+        self.itemCountString.set(1)
+        self.colorCountString.set(1)
+        self.positionString.set(0)
 
-        self.statusMessage = Label(self.frame, text="Please Do Something", fg=successCol)
+        self.selectionFrame = Frame(self.frame)
+        self.itemSelect = Entry(self.selectionFrame, textvariable=self.selectedItem)
+        self.colorSelect = Entry(self.selectionFrame, textvariable=self.selectedColor)
+        self.selectionFrame.grid(row=0, column=0)
+        self.itemSelect.grid(row=0, column=0)
+        self.colorSelect.grid(row=1, column=0)
 
-        self.header.grid(row=0, column=1)
+        self.colorFrame = Frame(self.frame)
+        self.rEntry = Entry(self.colorFrame, textvariable=self.rInt)
+        self.gEntry = Entry(self.colorFrame, textvariable=self.gInt)
+        self.bEntry = Entry(self.colorFrame, textvariable=self.bInt)
+        self.colorLength = Entry(self.colorFrame, textvariable=self.colorLengthString)
+        self.colorApply = Button(self.colorFrame, text="Apply", command= lambda: self.sendCommand("c"))
 
-        self.controlFrame.grid(row=1, column=0, padx=10, pady=10)
-        self.controlLabel.grid(row=0, column=0)
-        self.startButton.grid(row=0, column=1)
-        self.stopButton.grid(row=0, column=2)
+        self.colorFrame.grid(row=1, column=0)
+        self.rEntry.grid(row=0, column=0)
+        self.gEntry.grid(row=1, column=0)
+        self.bEntry.grid(row=2, column=0)
+        self.colorApply.grid(row=3, column=0)
 
-        self.timeFrame.grid(row=1, column=1)
+        self.toggleFrame = Frame(self.frame)
+        self.start = Button(self.toggleFrame, text="Start")
+        self.stop = Button(self.toggleFrame, text="Stop")
+        self.forward = Button(self.toggleFrame, text="Forward")
+        self.backward = Button(self.toggleFrame, text="Backward")
 
-        self.timeLabel.grid(row=0, column=0)
-        self.timeEntry.grid(row=0, column=1)
-        self.timeApply.grid(row=0, column=2)
-
-        self.statusMessage.grid(row=3, column=1)
-
-    def Send_Time(self):
-        timeString = "<1t" + "{0:0{1}x}".format(self.time, 3) + ">"
-
-        print(timeString)
-        Serial.write(timeString.encode())
-
-    def Get_Time(self):
-        timeString = self.timeEntry.get()
-        try:
-            self.time = int(timeString)
-        except ValueError:
-            pass
-
-        self.Send_Time()
-
-    def Start_Stop(self, action):
-        actionString = ""
-        if(action == 0):
-            actionString = "1s0"
-        else:
-            actionString = "1s1"
-
-        sendString = "<" + actionString + ">"
-
-        Serial.write(sendString.encode())
-        print(sendString)
-#         Send The String as serial
+        self.toggleFrame.grid(row=2, column=0)
+        self.start.grid(row=0, column=0)
+        self.stop.grid(row=0, column=1)
+        self.forward.grid(row=1, column=0)
+        self.backward.grid(row=1, column=1)
 
 
-class colorEditor:
-    def __init__(self, master, item, parent):
-        self.master = master
-        self.parent = parent
+        self.countFrame = Frame(self.frame)
+        self.itemCountEntry = Entry(self.countFrame, textvariable=self.itemCountString)
+        self.colorCountEntry = Entry(self.countFrame, textvariable=self.colorCountString)
+        self.itemCountButton = Button(self.countFrame, text="Apply")
+        self.colorCountButton = Button(self.countFrame, text="Apply")
+        self.colorCountLabel = Label(self.countFrame, text="Color Count")
+        self.itemCountLabel = Label(self.countFrame, text="Item Count")
 
-        self.frame = Frame(master, highlightbackground=borderCol, highlightcolor=borderCol, highlightthickness=1, padx=editorPaddingx, pady=editorPaddingy)
+        self.countFrame.grid(row=3, column=0)
+        self.itemCountLabel.grid(row=0, column=0)
+        self.itemCountEntry.grid(row=0, column=1)
+        self.itemCountButton.grid(row=0, column=2)
 
-        self.item = item
+        self.colorCountLabel.grid(row=1, column=0)
+        self.colorCountEntry.grid(row=1, column=1)
+        self.colorCountButton.grid(row=1, column=2)
 
-        self.header = Label(self.frame, text="Color " + str(item))
-
-
-        self.rEntry = Entry(self.frame)
-        self.rEntry.insert(END, rEntryDefault)
-
-        self.rLabel = Label(self.frame, text="Red")
-
-
-        self.gEntry = Entry(self.frame)
-        self.gEntry.insert(END, gEntryDefault)
-
-        self.gLabel = Label(self.frame, text="Green")
-
-
-        self.bEntry = Entry(self.frame)
-        self.bEntry.insert(END, bEntryDefault)
-
-        self.bLabel = Label(self.frame, text="Blue")
-
-        self.lLabel = Label(self.frame, text="Length")
-        self.lEntry = Entry(self.frame)
-        self.lEntry.insert(END, lEntryDefault)
-
-        self.apply_button = Button(self.frame, text="Apply", command=self.Get_Data)
-
-        self.error_label = Label(self.frame, text="", fg=errorCol)
-
-        self.frame.grid(row=2, column=self.item)
-
-        self.header.grid(row=0, column=1)
-
-        self.rLabel.grid(row=1, column=0)
-        self.rEntry.grid(row=1, column=1)
-
-        self.gLabel.grid(row=2, column=0)
-        self.gEntry.grid(row=2, column=1)
-
-        self.bLabel.grid(row=3, column=0)
-        self.bEntry.grid(row=3, column=1)
-
-        self.lEntry.grid(row=4, column=1)
-        self.lLabel.grid(row=4, column=0)
-
-        self.apply_button.grid(row=6, column=0)
-
-        self.error_label.grid(row=5, column=1)
-
-        self.color = [255, 255, 255]
-        self.length = 1
-
-    def Get_Data(self):
-        r = self.rEntry.get()
-        g = self.gEntry.get()
-        b = self.bEntry.get()
-        l = self.lEntry.get()
-
-        rint = 0
-        gint = 0
-        bint = 0
-        lint = 0
-
-        # Try and convert the values to ints
-        try:
-            rint = int(r)
-            gint = int(g)
-            bint = int(b)
-            lint = int(l)
-            self.error_label['text'] = ":)"
-
-        # If its not an int its bad
-        except ValueError:
-            self.error_label['text'] = "BAD INPUT"
-            return
-
-        newColor = [rint, gint, bint]
-        newLength = lint
-
-        for index in range(0, 3):
-            if(newColor[index] > 255):
-                newColor[index] = 255
-            elif(newColor[index] < 0):
-                newColor[index] = 0
+        self.miscFrame = Frame(self.frame)
+        self.timeEntry = Entry(self.miscFrame, textvariable=self.timeString)
+        self.positionEntry = Entry(self.miscFrame, textvariable=self.positionString)
+        self.timeButton = Button(self.miscFrame, text="Set Time")
+        self.positionButton = Button(self.miscFrame, text="Set Position")
 
 
-        oldColor = self.color
-        self.color = newColor
-        self.length = lint
+    def sendCommand(self, command):
+        if(command == 'c'):
+            rCommand = "<" + "c" + str(self.selectedItem.get()) + str(self.selectedColor.get()) + "0" + str(hex(self.rInt.get())[2:].zfill(3)) + ">"
+            gCommand = "<" + "c" + str(self.selectedItem.get()) + str(self.selectedColor.get()) + "1" + str(hex(self.gInt.get())[2:].zfill(3)) + ">"
+            bCommand = "<" + "c" + str(self.selectedItem.get()) + str(self.selectedColor.get()) + "2" + str(hex(self.bInt.get())[2:].zfill(3)) + ">"
+
+            Serial.write(rCommand.encode())
+            Serial.write(gCommand.encode())
+            Serial.write((bCommand.encode()))
 
 
-        for val in range(0, 3):
-            if(newColor[val] != oldColor[val]):
-                if(self.Send_Data(val) == 0):
-                    (self.parent.statusMessage.config(text="AYYY", fg=successCol))
-                else:
-                    self.parent.statusMessage.config(text="SOMETHING WENT WRONG", fg=errorCol)
-        self.Send_Data('l')
+            # hex((int)self.rString)
 
 
-    def Send_Data(self, color):
-        #Serial Stuff in here
-        # Serial command syntax
-        # (value) is in hex, 2 chars for a color, 3 for a time
-        # 1(colorNum)(color)(value)
-        # 1(time)(value)
-
-        if(color != 'l'):
-            serialData = "1" + str(self.item) + colorDict[color] + "{0:0{1}x}".format(self.color[color], 2)
-        else:
-            serialData = "1" + str(self.item) + 'l' + "{0:0{1}x}".format(self.length, 2)
-        # print(serialData)
-
-        serialString = "<" + serialData + ">"
-
-
-        print(serialString)
-
-        Serial.write(serialString.encode())
-
-        return 0
 
 
 root = Tk()
