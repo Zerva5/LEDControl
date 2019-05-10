@@ -1,4 +1,5 @@
 from tkinter import *
+import asyncio
 import serial
 import string
 
@@ -23,8 +24,12 @@ colorDict = {
     2: "b"
 }
 
+# <c0000FF>
 
-# Serial = serial.Serial("/dev/ttyACM0")
+Serial = serial.Serial("/dev/ttyACM0")
+
+async def Send(command):
+    Serial.write(command.encode())
 
 class colorGUI:
     def __init__(self, master):
@@ -51,7 +56,7 @@ class colorGUI:
         self.bEntry = Entry(self.frame, textvariable=self.bInt)
         self.lengthEntry = Entry(self.frame, textvariable=self.lengthInt)
 
-        self.apply = Button(self.frame, text="Apply", command= lambda: self.send())
+        self.apply = Button(self.frame, text="Apply", command=self.send)
 
         self.rLabel = Label(self.frame, text="R")
         self.gLabel = Label(self.frame, text="G")
@@ -70,38 +75,26 @@ class colorGUI:
         self.apply.grid(row=4, column=1)
     
     def send(self):
-        if(self.rInt.get() != self.rOld or oldItem != selectedItem.get() or oldColor != selectedColor.get()):
-            rCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.rInt.get())[2:].zfill(3)) + ">"
-            Serial.write(rCommand.encode())
-            self.rOld = self.rInt.get()
-            updateOldColor()
-            updateOldItem()
-            print("New Value" + rCommand)
-        if(self.gInt.get() != self.gOld or oldItem != selectedItem.get() or oldColor != selectedColor.get()):
-            gCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "1" + str(hex(self.gInt.get())[2:].zfill(3)) + ">"
-            Serial.write(gCommand.encode())
-            self.gOld = self.gInt.get()
-            updateOldColor()
-            updateOldItem()
-            print("New Value" + gCommand)
-        if(self.bInt.get() != self.bOld or oldItem != selectedItem.get() or oldColor != selectedColor.get()):
-            bCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "2" + str(hex(self.bInt.get())[2:].zfill(3)) + ">"
-            Serial.write(bCommand.encode())
-            self.bOld = self.bInt.get()
-            updateOldColor()
-            updateOldItem()
-            print("New Value" + bCommand)
-        if(self.lengthInt.get() != self.lengthOld or oldItem != selectedItem.get() or oldColor != selectedColor.get()):
-            lCommand = "<" + "l" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.lengthInt.get())[2:].zfill(3)) + ">"
-            Serial.write(lCommand.encode())
-            self.lengthOld = self.lengthInt.get()
-            updateOldColor()
-            updateOldItem()
-            print("New Value" + lCommand)
+        rCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.rInt.get())[2:].zfill(3)) + ">"
+        Serial.write(rCommand.encode())
+        self.rOld = self.rInt.get()
+
+        gCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "1" + str(hex(self.gInt.get())[2:].zfill(3)) + ">"
+        Serial.write(gCommand.encode())
+        self.gOld = self.gInt.get()
+
+        bCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "2" + str(hex(self.bInt.get())[2:].zfill(3)) + ">"
+        Serial.write(bCommand.encode())
+        self.bOld = self.bInt.get()
+
+        lCommand = "<" + "l" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.lengthInt.get())[2:].zfill(3)) + ">"
+        Serial.write(lCommand.encode())
+        self.lengthOld = self.lengthInt.get()
         
         return
 
 class selectionGUI:
+
     def __init__(self, master):
         self.master = master
 
@@ -260,12 +253,7 @@ selectedItem.set(0)
 oldItem = 0
 oldColor = 0
 
-def updateOldColor():
-    oldColor = selectedColor.get()
-
-def updateOldItem():
-    oldItem = selectedItem.get()
-
 gui = mainGUI(root)
+
 
 root.mainloop()
