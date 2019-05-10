@@ -28,8 +28,8 @@ colorDict = {
 
 Serial = serial.Serial("/dev/ttyACM0")
 
-async def Send(command):
-    Serial.write(command.encode())
+oldItem = 0
+oldColor = 0
 
 class colorGUI:
     def __init__(self, master):
@@ -158,18 +158,15 @@ class itemGUI:
 
     def send(self, type):
         if(type == "a"):
-            if(self.timeInt.get() != self.timeOld or oldItem != selectedItem.get()):
-                tCommand = "<" + "t" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.timeInt.get())[2:].zfill(3)) + ">"
-                Serial.write(tCommand.encode())
-                self.timeOld = self.timeInt.get()
-                updateOldItem()
-                print("New Value" + tCommand)
-            if(self.colorCountInt.get() != self.colorCountOld or oldItem != selectedItem.get()):
-                cCommand = "<" + "a" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.colorCountInt.get())[2:].zfill(3)) + ">"
-                Serial.write(cCommand.encode())
-                self.colorCountOld = self.colorCountInt.get()
-                updateOldItem()
-                print("New Value" + cCommand)
+            tCommand = "<" + "t" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.timeInt.get())[2:].zfill(3)) + ">"
+            Serial.write(tCommand.encode())
+            self.timeOld = self.timeInt.get()
+            print("New Value" + tCommand)
+
+            cCommand = "<" + "a" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.colorCountInt.get())[2:].zfill(3)) + ">"
+            Serial.write(cCommand.encode())
+            self.colorCountOld = self.colorCountInt.get()
+            print("New Value" + cCommand)
         if(type == "d"):
             newDir = 0
             if(self.directionOld != 1):
@@ -249,9 +246,6 @@ selectedColor = IntVar()
 
 selectedColor.set(0)
 selectedItem.set(0)
-
-oldItem = 0
-oldColor = 0
 
 gui = mainGUI(root)
 
