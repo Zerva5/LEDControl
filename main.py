@@ -2,34 +2,17 @@ from tkinter import *
 import asyncio
 import serial
 import string
-
-borderCol = "grey"
-errorCol = "red"
-successCol = "green"
-
-timeEntryDefault = "1000"
-
-rEntryDefault = "255"
-gEntryDefault = "255"
-bEntryDefault = "255"
+from data import *
 
 lEntryDefault = "1"
 
 editorPaddingx = 10
 editorPaddingy = 5
 
-colorDict = {
-    0: "r",
-    1: "g",
-    2: "b"
-}
-
-# <c0000FF>
-
 Serial = serial.Serial("/dev/ttyACM0")
+Serial.baudrate = 500000
+strip = Strip()
 
-oldItem = 0
-oldColor = 0
 
 class colorGUI:
     def __init__(self, master):
@@ -75,21 +58,32 @@ class colorGUI:
         self.apply.grid(row=4, column=1)
     
     def send(self):
-        rCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.rInt.get())[2:].zfill(3)) + ">"
-        Serial.write(rCommand.encode())
-        self.rOld = self.rInt.get()
+        selI = selectedItem.get()
+        selC = selectedColor.get()
 
-        gCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "1" + str(hex(self.gInt.get())[2:].zfill(3)) + ">"
-        Serial.write(gCommand.encode())
-        self.gOld = self.gInt.get()
+        if(strip.items[selI].colors[selC].rgb[0] != self.rInt.get()):
+            rCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.rInt.get())[2:].zfill(3)) + ">"
+            Serial.write(rCommand.encode())
+            strip.items[selI].colors[selC].rgb[0] = self.rInt.get()
+            print("r")
+        
+        if(strip.items[selI].colors[selC].rgb[1] != self.gInt.get()):
+            gCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "1" + str(hex(self.gInt.get())[2:].zfill(3)) + ">"
+            Serial.write(gCommand.encode())
+            strip.items[selI].colors[selC].rgb[1] = self.gInt.get()
+            print("g")
 
-        bCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "2" + str(hex(self.bInt.get())[2:].zfill(3)) + ">"
-        Serial.write(bCommand.encode())
-        self.bOld = self.bInt.get()
+        if(strip.items[selI].colors[selC].rgb[2] != self.bInt.get()):
+            bCommand = "<" + "c" + str(selectedItem.get()) + str(selectedColor.get()) + "2" + str(hex(self.bInt.get())[2:].zfill(3)) + ">"
+            Serial.write(bCommand.encode())
+            strip.items[selI].colors[selC].rgb[2] = self.bInt.get()
 
-        lCommand = "<" + "l" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.lengthInt.get())[2:].zfill(3)) + ">"
-        Serial.write(lCommand.encode())
-        self.lengthOld = self.lengthInt.get()
+        if(strip.items[selI].colors[selC].len != self.lengthInt.get()):
+            lCommand = "<" + "l" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.lengthInt.get())[2:].zfill(3)) + ">"
+            print(lCommand)
+            Serial.write(lCommand.encode())
+            strip.items[selI].colors[selC].len = self.lengthInt.get()
+            # print("l")
         
         return
 
@@ -157,30 +151,45 @@ class itemGUI:
         self.positionApply.grid(row=4, column=1)
 
     def send(self, type):
-        if(type == "a"):
-            tCommand = "<" + "t" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.timeInt.get())[2:].zfill(3)) + ">"
-            Serial.write(tCommand.encode())
-            self.timeOld = self.timeInt.get()
-            print("New Value" + tCommand)
+        selI = selectedItem.get()
+        selC = selectedColor.get()
 
-            cCommand = "<" + "a" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.colorCountInt.get())[2:].zfill(3)) + ">"
-            Serial.write(cCommand.encode())
-            self.colorCountOld = self.colorCountInt.get()
-            print("New Value" + cCommand)
+        if(type == "a"):
+            if(strip.items[selI].maxt != self.timeInt.get()):
+                tCommand = "<" + "t" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.timeInt.get())[2:].zfill(3)) + ">"
+                Serial.write(tCommand.encode())
+                strip.items[selI].maxt = self.timeInt.get()
+                print(self.timeInt.get())
+                print(tCommand)
+
+            if(strip.items[selI].colorCount != self.colorCountInt.get()):
+                cCommand = "<" + "a" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.colorCountInt.get())[2:].zfill(3)) + ">"
+                Serial.write(cCommand.encode())
+
+                colorChange = self.colorCountInt.get() - strip.items[selI].colorCount
+                if(colorChange < 0):
+                    for colorItem in range(0, colorChange * -1):
+                        strip.items[selI].colors.pop()
+                else:
+                    for colorItem in range(0, colorChange):
+                        strip.items[selI].colors.append(colorID())
+    
+                strip.items[selI].colorCount = self.colorCountInt.get()
+
         if(type == "d"):
             newDir = 0
-            if(self.directionOld != 1):
+
+            if(strip.items[selI].direction == 0):
                 newDir = 1
+
             dCommand = "<" + "d" + str(selectedItem.get()) + str(selectedColor.get()) + "000" + str(newDir) + ">"
             Serial.write(dCommand.encode())
-            self.directionOld = newDir
-            print("New Value" + dCommand)
+            strip.items[selI].direction = newDir
         
         if(type == "p"):
             pCommand = "<" + "p" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.positionInt.get())[2:].zfill(3)) + ">"
             Serial.write(pCommand.encode())
-            self.positionOld = self.positionInt.get()
-            print("New Value" + pCommand)
+            strip.items[selI].currentIndex = self.positionInt.get()
         return
 
 class stripGUI:
@@ -190,7 +199,7 @@ class stripGUI:
         self.frame = Frame(self.master)
 
         self.itemCountInt = IntVar()
-        self.itemCountInt.set(1)
+        self.itemCountInt.set(0)
 
         self.activeOld = 1
         
@@ -210,11 +219,25 @@ class stripGUI:
 
 
     def send(self):
-        if(self.itemCountInt.get() != self.itemCountOld):
+        selI = selectedItem.get()
+        selC = selectedColor.get()
+
+        if(self.itemCountInt.get() != strip.itemCount):
             iCommand = "<" + "i" + str(selectedItem.get()) + str(selectedColor.get()) + "0" + str(hex(self.itemCountInt.get())[2:].zfill(3)) + ">"
             Serial.write(iCommand.encode())
-            self.itemCountOld = self.itemCountInt.get()
-            print("New Value" + iCommand)
+
+            itemChange = self.itemCountInt.get() - strip.itemCount
+            if(itemChange < 0):
+                for item in range(0, itemChange * -1):
+                    strip.items.pop()
+            else:
+                for item in range(0, itemChange):
+                    strip.items.append(Item())
+            
+            print(self.itemCountInt.get())
+            print(iCommand)
+
+            strip.itemCount = self.itemCountInt.get()
 
 
 
